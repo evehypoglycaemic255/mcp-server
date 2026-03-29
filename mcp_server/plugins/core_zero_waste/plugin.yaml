@@ -1,0 +1,4 @@
+name: core_zero_waste
+description: Hệ thống lõi Zero-Waste chống rò rỉ Context và ngăn lặp vòng lặp ảo của Agent.
+version: 1.0.0
+enabled: true

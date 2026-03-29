@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  db:
+    image: pgvector/pgvector:pg15
+    container_name: mcp_postgres
+    environment:
+      POSTGRES_USER: mcp
+      POSTGRES_PASSWORD: mcp
+      POSTGRES_DB: mcp_server_db
+    volumes:
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+
+  mcp-server:
+    build: ./mcp_server
+    container_name: mcp_api_server
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://mcp:mcp@db:5432/mcp_server_db
+    volumes:
+      - ./mcp_server:/app
+      - ./projects:/app/projects
+      - ./rules:/app/rules
+      - ./logs:/app/logs
+    ports:
+      - "8000:8000"
+    command: python main.py --sse
+
+  dashboard:
+    build: ./dashboard
+    container_name: mcp_dashboard
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql://mcp:mcp@db:5432/mcp_server_db
+    volumes:
+      - ./dashboard:/app
+    ports:
+      - "8501:8501"
+
+volumes:
+  postgres_data:

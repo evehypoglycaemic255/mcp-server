@@ -1,0 +1,28 @@
+{
+    "server": {
+        "host": "0.0.0.0",
+        "port": 8000,
+        "debug": true
+    },
+    "watchdog": {
+        "debounce_seconds": 5,
+        "max_file_size_bytes": 10000,
+        "ignored_patterns": [
+            ".git",
+            "__pycache__",
+            ".pytest_cache",
+            "sprints_reports",
+            "chroma",
+            "ai_sessions",
+            "venv"
+        ]
+    },
+    "vector_db": {
+        "embedding_model": "all-MiniLM-L6-v2",
+        "search_limit_default": 5
+    },
+    "github": {
+        "remote_api_enabled": false,
+        "default_branch_prefix": "ai-feature/"
+    }
+}

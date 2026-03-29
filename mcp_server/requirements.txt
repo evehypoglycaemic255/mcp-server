@@ -1,0 +1,16 @@
+# MCP Core & API
+mcp>=0.1.0
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+
+# Database Connection
+psycopg2-binary>=2.9.9
+
+# Utilities
+python-dotenv>=1.0.0
+pydantic>=2.0
+
+# Watcher & Vector DB
+watchdog>=4.0.0
+chromadb>=0.4.20
+sentence-transformers>=2.0.0

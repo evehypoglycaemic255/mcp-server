@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "local-files": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        ".",
+        "./docs"
+      ]
+    },
+    "postgres-brain": {
+      "command": "python",
+      "args": [
+        "mcp_server/main.py"
+      ]
+    }
+  }
+}

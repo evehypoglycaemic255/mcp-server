@@ -1,0 +1,4 @@
+name: core_system
+description: Bộ quét mã nguồn, chạy Review kiến trúc, và đọc tệp cơ bản.
+version: 1.0.0
+enabled: true

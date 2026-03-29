@@ -1,0 +1,16 @@
+# UI Framework
+streamlit>=1.31.0
+
+# Data Processing
+pandas>=2.2.0
+numpy>=1.26.0
+
+# Visualization
+plotly>=5.18.0
+
+# Database Connection
+psycopg2-binary>=2.9.9
+
+# Năng lực Đọc Biến Môi trường và File Cấu Hình
+python-dotenv>=1.0.0
+pyyaml>=6.0.0
