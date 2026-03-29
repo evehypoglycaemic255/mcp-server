@@ -1,9 +1,9 @@
 <h1 align="center">
-  🚀 MCP Commander: Zero-Waste AI Platform
+  🚀 MCP Commander: Token-Efficient AI Platform
 </h1>
 
 <p align="center">
-  A highly modular, production-ready <b>Model Context Protocol (MCP) Server</b> designed to transform any LLM AI Agent (Cursor, Windsurf, generic AI) into a persistent, autonomous, and zero-waste developer.
+  A highly modular, production-ready <b>Model Context Protocol (MCP) Server</b> designed to transform any LLM AI Agent into a persistent, context-optimized, and context-aware developer.
 </p>
 
 ## ✨ Core Philosophy
