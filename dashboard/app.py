@@ -97,12 +97,13 @@ project_id = projects_df[projects_df['project_name'] == project_name].iloc[0]['i
 # ========================
 # VIEWS (TABS)
 # ========================
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "🏃 Sprint & Backlog Window", 
     "📊 Overview Dashboard", 
     "🤖 AI Log Signals", 
     "🛠️ System Tool Logs",
-    "🔌 Plugins Ecosystem"
+    "🔌 Plugins Ecosystem",
+    "🧠 Antigravity Brain Logs"
 ])
 
 with tab1:
@@ -247,3 +248,64 @@ with tab5:
                             st.error(f"Write Config Error: {e}")
     else:
         st.warning(f"Plugins directory not found. Dashboard is tracking: {PLUGINS_DIR}")
+
+with tab6:
+    st.subheader("🧠 Antigravity Historical Brain Logs")
+    
+    plugin_yaml_path = os.path.join(PLUGINS_DIR, "antigravity_sync", "plugin.yaml")
+    is_enabled = False
+    
+    if os.path.exists(plugin_yaml_path):
+        with open(plugin_yaml_path, 'r', encoding='utf-8') as f:
+            cfg = yaml.safe_load(f)
+            is_enabled = cfg.get("enabled", False)
+            
+    if not is_enabled:
+        st.warning("⚠️ Bí thuật 'Antigravity Matrix' đang bị vô hiệu hóa. Vui lòng bật nó ở '🔌 Plugins Ecosystem' (Tab 5) để cấp quyền đọc Lịch sử Chat.")
+    else:
+        brain_dir = "/antigravity_brain"
+        if not os.path.exists(brain_dir):
+            st.error(f"❌ Đứt cầu nối Volume tại `{brain_dir}`. Vui lòng tắt bật lại Docker Compose!")
+        else:
+            st.markdown("🔎 Trích xuất bộ nhớ Phân tích & Triển khai từ các phiên bản Chat trước của AI Agent.")
+            
+            folders = []
+            for entry in os.listdir(brain_dir):
+                full_path = os.path.join(brain_dir, entry)
+                if os.path.isdir(full_path) and len(entry) > 10:
+                    mtime = os.path.getmtime(full_path)
+                    import datetime
+                    dt_str = datetime.datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M:%S')
+                    folders.append((f"{dt_str} [ID: {entry[:8]}]", entry, mtime))
+                    
+            folders.sort(key=lambda x: x[2], reverse=True)
+            
+            if not folders:
+                st.info("Chưa tìm thấy ký ức nào của Antigravity.")
+            else:
+                display_names = [f[0] for f in folders]
+                folder_mapping = {f[0]: f[1] for f in folders}
+                
+                selected_display = st.selectbox("📅 Chọn Phiên Chat Quá khứ:", display_names)
+                if selected_display:
+                    actual_folder = folder_mapping[selected_display]
+                    target_path = os.path.join(brain_dir, actual_folder)
+                    
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        st.markdown("### 🗺️ Bản vẽ Kế hoạch (Implementation Plan)")
+                        plan_path = os.path.join(target_path, "implementation_plan.md")
+                        if os.path.exists(plan_path):
+                            with open(plan_path, 'r', encoding='utf-8') as fp:
+                                st.info(fp.read())
+                        else:
+                            st.caption("Không có Kế hoạch kỹ thuật cho Session này.")
+                            
+                    with c2:
+                        st.markdown("### 🏆 Báo cáo Triển khai (Final Walkthrough)")
+                        walk_path = os.path.join(target_path, "walkthrough.md")
+                        if os.path.exists(walk_path):
+                            with open(walk_path, 'r', encoding='utf-8') as fw:
+                                st.success(fw.read())
+                        else:
+                            st.caption("Không ghi nhận lại báo cáo Walkthrough.")

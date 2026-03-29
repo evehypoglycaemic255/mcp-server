@@ -36,6 +36,15 @@ CREATE TABLE IF NOT EXISTS ai_sessions (
     pending_tasks TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+-- Bảng Nhật ký Tool Mới (Dashboard Tab 4)
+CREATE TABLE IF NOT EXISTS system_tool_logs (
+    id SERIAL PRIMARY KEY,
+    tool_name TEXT NOT NULL,
+    parameters TEXT,
+    status TEXT,
+    message TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
 -- Cài đặt Extension Vector và Bảng Vector
 CREATE EXTENSION IF NOT EXISTS vector;

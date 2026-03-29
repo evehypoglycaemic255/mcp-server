@@ -26,6 +26,7 @@ services:
       - ./projects:/app/projects
       - ./rules:/app/rules
       - ./logs:/app/logs
+      - C:/Users/minht/.gemini/antigravity/brain:/antigravity_brain:ro
     ports:
       - "8000:8000"
     command: python main.py --sse
@@ -39,6 +40,8 @@ services:
       - DATABASE_URL=postgresql://mcp:mcp@db:5432/mcp_server_db
     volumes:
       - ./dashboard:/app
+      - ./mcp_server:/mcp_server
+      - C:/Users/minht/.gemini/antigravity/brain:/antigravity_brain:ro
     ports:
       - "8501:8501"
 
