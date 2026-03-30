@@ -1,0 +1,12 @@
+name: project_backlog
+description: Sprint, backlog, and project lifecycle management tools.
+version: 1.0.0
+enabled: true
+owner: Backend
+cluster: project_backlog
+managed_in:
+- Projects tab
+- Sprint & Backlog Window
+tool_count: 0
+tools: []
+last_tool_catalog_sync: '2026-03-30 17:22:21'
