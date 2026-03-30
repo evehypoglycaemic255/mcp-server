@@ -1,4 +1,4 @@
-﻿import ast
+import ast
 import os
 
 from core.config import settings
@@ -10,10 +10,7 @@ def register_tools(mcp):
     @mcp.tool()
     @safe_tool
     def apply_safe_patch(filepath: str, old_snippet: str, new_snippet: str, dry_run: bool = False) -> dict:
-        """
-        Apply a bounded patch inside the configured workspace.
-        The tool refuses multi-match replacements and validates Python syntax before writing.
-        """
+        """Applies validated multi-line patches safely to target files."""
         normalized_path = os.path.abspath(filepath)
         workspace_root = os.path.abspath(settings.PROJECT_ROOT)
 

@@ -1,4 +1,4 @@
-﻿import os
+import os
 import json
 from core.dependencies import safe_tool
 
@@ -8,12 +8,7 @@ def register_tools(mcp):
     @mcp.tool()
     @safe_tool
     def search_semantic_context(project_name: str, query: str, expand_level: int = 2, limit: int = 5) -> dict:
-        """
-        Search semantic code context for a specific project.
-        expand_level=1 returns function-level results.
-        expand_level=2 adds class summaries when available.
-        expand_level=3 also expands dependency metadata.
-        """
+        """Search semantic code context for a project. Set expand_level for depth (1=Func, 2=Class, 3=Deps)."""
         from core.vector_db import search_memory
         from core.config import settings
         import psycopg2

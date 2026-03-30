@@ -19,12 +19,7 @@ def register_tools(mcp):
     @mcp.tool()
     @safe_tool
     def read_historical_brain(limit: int = 3, include_plans: bool = True) -> list:
-        """
-        [CONTEXT SYNC] Giúp AI tự giác đọc các Di sản (Walkthrough, Plan) mà AI ở phiên trước đã làm.
-        Chống mất Mạch suy nghĩ (Amnesia) sau khi tắt cửa sổ chat.
-        - limit: Số lượng phiên trước để đọc (Mặc định 3).
-        - include_plans: Nếu Tắt (False), chỉ đọc Walkthrough (tiết kiệm token context). Bật (True), đọc cả Design Plan.
-        """
+        """Fetch past AI session walkthroughs/plans."""
         BRAIN_DIR = "/antigravity_brain"
         if not os.path.exists(BRAIN_DIR):
             return [{"error": f"Volume {BRAIN_DIR} không tồn tại. Yêu cầu bật Volume qua docker-compose!"}]

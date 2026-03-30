@@ -102,4 +102,6 @@ if __name__ == "__main__":
     if "--sse" in sys.argv:
         uvicorn.run(app, host=settings.SERVER_HOST, port=settings.SERVER_PORT)
     else:
+        # stdio mode = local trusted connection, grant admin role
+        set_current_user_role("admin")
         mcp.run()

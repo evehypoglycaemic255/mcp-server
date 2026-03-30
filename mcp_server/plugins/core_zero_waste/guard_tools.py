@@ -9,11 +9,7 @@ def register_tools(mcp):
     @mcp.tool()
     @safe_tool
     def check_attempt_trap(task_id: str, proposed_logic: str) -> dict:
-        """
-        [LOOP GUARD] Giám ngục trí nhớ Mềm. Cản con đường dẫn tới Trial-Mù.
-        - Trạng thái: WARN -> SOFT_BLOCK -> HARD_BLOCK.
-        - Nếu Soft Block, ngưng hành động đó lại! Lấy Hint và đổi gốc chiến thuật (Strategy Shift).
-        """
+        """Checks AI iteration attempts to prevent infinite circular reasoning."""
         attempt_hash = hashlib.md5((task_id + proposed_logic).encode()).hexdigest()
         
         attempt_count = ATTEMPT_MEMORY_STORE.get(attempt_hash, 0)

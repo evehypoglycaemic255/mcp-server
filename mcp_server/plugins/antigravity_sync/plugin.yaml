@@ -1,13 +1,9 @@
-name: 🧠 Antigravity Matrix
-description: Kết nối lịch sử session Antigravity để đọc plan và walkthrough từ bộ
-  nhớ ngoài.
+name: antigravity_sync
+description: Read past AI session walkthroughs and plans from Antigravity brain.
 version: 1.0.0
 enabled: true
 owner: Knowledge / UX
+cluster: planning_brain
 managed_in:
 - Antigravity Brain Logs
 - Plugins Ecosystem
-tool_count: 1
-tools:
-- read_historical_brain
-last_tool_catalog_sync: '2026-03-30 16:41:44'

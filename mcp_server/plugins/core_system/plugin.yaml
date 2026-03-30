@@ -1,20 +1,21 @@
 name: core_system
-description: Bộ công cụ hệ thống cho quản lý project, sprint, backlog, memory query,
-  và review kiến trúc code.
-version: 1.0.0
+description: Project, sprint, backlog management and adaptive tool routing.
+version: 2.0.0
 enabled: true
 owner: Backend
+cluster: always_on
 managed_in:
 - Projects tab
 - Sprint & Backlog Window
 - MCP Server tools
-tool_count: 16
+tool_count: 18
 tools:
 - assign_backlog_agent_tag
 - claim_backlog_item
 - create_backlog_item
 - create_sprint
 - get_active_tool_catalog
+- get_available_clusters
 - get_project_sync_status
 - list_backlog_claim_events
 - list_project_assets
@@ -23,8 +24,8 @@ tools:
 - search_codebase
 - search_past_decisions
 - store_project_memory
+- switch_tool_cluster
 - update_backlog_item
 - update_sprint
 - upsert_project
-last_synced_via_mcp_tool: 2026-03-30
-last_tool_catalog_sync: '2026-03-30 16:41:44'
+last_tool_catalog_sync: '2026-03-30 17:09:32'

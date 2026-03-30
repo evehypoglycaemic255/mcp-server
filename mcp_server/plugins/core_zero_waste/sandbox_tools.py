@@ -9,11 +9,7 @@ def register_tools(mcp):
     @mcp.tool()
     @safe_tool
     def run_code_ephemeral(python_code: str, test_inputs: str = "") -> dict:
-        """
-        [SANDBOX ENGINE] Chạy nháp Code Python trên RAM, cô lập quy trình (Isolated Process).
-        Có giới hạn ngắt kết nối (Timeout) để chống Infinite Loop của AI.
-        Tuyệt đối không làm lộ State hay ghi đè lên Codebase thật.
-        """
+        """Executes isolated Python code snippet in RAM sandbox to test logic."""
         # Tạo file nháp Tạm thời (Ephemeral)
         with tempfile.NamedTemporaryFile(suffix=".py", delete=False, mode="w", encoding="utf-8") as tmp:
             tmp.write(python_code)

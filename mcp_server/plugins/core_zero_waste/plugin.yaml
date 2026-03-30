@@ -1,22 +1,13 @@
 name: core_zero_waste
-description: Hệ thống lõi Zero-Waste cho context guard, validator, sandbox, session
-  logging, và patch workflow.
+description: Context guards, validation, sandbox, session logging, and patch workflow.
 version: 1.0.0
 enabled: true
 owner: Backend
+cluster: code_execution
 managed_in:
 - Sprint & Backlog Window
 - AI Log Signals
 - MCP Server tools
-tool_count: 9
-tools:
-- apply_safe_patch
-- check_attempt_trap
-- create_execution_plan
-- get_project_context
-- log_session_v2
-- review_architecture_map
-- run_code_ephemeral
-- search_semantic_context
-- validate_syntax_lint
-last_tool_catalog_sync: '2026-03-30 16:41:44'
+tool_count: 0
+tools: []
+last_tool_catalog_sync: '2026-03-30 17:09:32'
