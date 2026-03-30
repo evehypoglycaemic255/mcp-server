@@ -74,6 +74,7 @@ def ensure_schema(conn):
                 parameters JSONB,
                 status VARCHAR(50),
                 message TEXT,
+                role VARCHAR(50) DEFAULT 'anonymous',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
@@ -87,6 +88,7 @@ def ensure_schema(conn):
         cur.execute("ALTER TABLE backlog_items ADD COLUMN IF NOT EXISTS effort TEXT DEFAULT 'M'")
         cur.execute("ALTER TABLE backlog_items ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
         cur.execute("ALTER TABLE system_tool_logs ALTER COLUMN parameters TYPE JSONB USING parameters::jsonb")
+        cur.execute("ALTER TABLE system_tool_logs ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'anonymous'")
         cur.execute("""
             INSERT INTO projects (project_name, description, repo_path)
             VALUES (%s, %s, %s)

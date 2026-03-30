@@ -75,8 +75,8 @@ def safe_tool(fn):
                 conn = get_db_conn()
                 with conn.cursor() as cur:
                     cur.execute(
-                        "INSERT INTO system_tool_logs (tool_name, parameters, status, message) VALUES (%s, %s, %s, %s)",
-                        (fn.__name__, params_json, status, message),
+                        "INSERT INTO system_tool_logs (tool_name, parameters, status, message, role) VALUES (%s, %s, %s, %s, %s)",
+                        (fn.__name__, params_json, status, message, role),
                     )
                 conn.commit()
                 conn.close()

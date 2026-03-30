@@ -8,19 +8,28 @@ starlette>=0.36.0
 psycopg2-binary>=2.9.9
 sqlalchemy>=2.0.0
 
-# Utilities
+# Configuration / Env
 python-dotenv>=1.0.0
 pydantic>=2.0
 pyyaml>=6.0
 
-# Watcher & Vector DB
-watchdog>=4.0.0
-chromadb>=0.4.20
-sentence-transformers>=2.0.0
-
 # Observability & Metrics
 prometheus_client>=0.16.0
 
-# Additional utilities
+# Watcher / File System
+watchdog>=4.0.0
+
+# Vector DB / Embedding
+chromadb>=0.4.20
+sentence-transformers>=2.0.0
+
+# HTTP + tooling
 requests>=2.31.0
 aiofiles>=23.0.0
+
+# Data / Dashboard
+pandas>=2.0.3
+streamlit>=1.24.1
+
+# Optional (only if using extra tool modules in project)
+pyyaml>=6.0

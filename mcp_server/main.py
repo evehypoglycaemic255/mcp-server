@@ -100,8 +100,6 @@ if __name__ == "__main__":
     from core.config import settings
     start_watcher(settings.DEFAULT_PROJECT_NAME)
     if "--sse" in sys.argv:
-        print(f"🚀 [SSE Mode] MCP mounted at /mcp")
-        print(f"👉 SSE: http://localhost:{settings.SERVER_PORT}/mcp/sse")
         uvicorn.run(app, host=settings.SERVER_HOST, port=settings.SERVER_PORT)
     else:
         mcp.run()

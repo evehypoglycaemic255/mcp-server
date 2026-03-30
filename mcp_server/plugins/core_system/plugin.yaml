@@ -8,7 +8,23 @@ managed_in:
 - Projects tab
 - Sprint & Backlog Window
 - MCP Server tools
-tool_count: 0
-tools: []
+tool_count: 16
+tools:
+- assign_backlog_agent_tag
+- claim_backlog_item
+- create_backlog_item
+- create_sprint
+- get_active_tool_catalog
+- get_project_sync_status
+- list_backlog_claim_events
+- list_project_assets
+- release_backlog_item
+- review_code_architecture
+- search_codebase
+- search_past_decisions
+- store_project_memory
+- update_backlog_item
+- update_sprint
+- upsert_project
 last_synced_via_mcp_tool: 2026-03-30
-last_tool_catalog_sync: '2026-03-30 13:06:57'
+last_tool_catalog_sync: '2026-03-30 16:41:44'

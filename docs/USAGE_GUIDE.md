@@ -360,6 +360,92 @@ x-healthcheck-token: <MCP_HEALTHCHECK_SECRET>
 3. Manually trigger via `update_sprint(project_name, sprint_name, status="Completed")`.
 4. Check app logs for `_write_sync_manifest` errors.
 
+## 9.1 Agent-to-Agent Task Handoff Protocol
+
+### Handoff Between Agents
+
+When one agent completes a task and another needs to continue work:
+
+**Step 1: Agent A Completes Work**
+```
+- Agent A updates task status to "Done"
+- Agent A releases agent_tag (optional, leaves tag for documentation)
+- Agent A commits code changes with clear commit message
+```
+
+**Step 2: System Recognizes Completion**
+```
+- Dashboard shows task status = "Done"
+- Sync manifest records task as completed in sprint report
+- system_tool_logs records: tool=update_backlog_item, status=SUCCESS, role=admin
+```
+
+**Step 3: Agent B Picks Up Related Task**
+```
+- Agent B checks for dependent tasks (status="To Do", related to Agent A's work)
+- Agent B calls assign_backlog_agent_tag(new_task_id, "agent:agent_b")
+- Agent B updates status → "In Progress"
+- Dashboard shows: Agent: agent:agent_b
+```
+
+**Step 4: Conflict Prevention During Handoff**
+```
+If Agent B tries to claim same task Agent A owns:
+- System checks: agent_tag != "" and agent_tag != "agent:agent_b"
+- Result: FORBIDDEN (status logged to system_tool_logs)
+- Dashboard shows warning: "Task locked by agent:agent_a"
+```
+
+### Handoff Status Tracking
+
+The `backlog_claim_events` table tracks all transitions:
+
+```sql
+SELECT 
+    bce.id,
+    bce.actor_agent_tag,
+    bce.previous_agent_tag,
+    bce.new_agent_tag,
+    bce.event_type,
+    bce.created_at
+FROM backlog_claim_events bce
+ORDER BY bce.created_at DESC;
+```
+
+---
+
+## 9.2 Conflict Prevention Strategy
+
+### Multi-Agent Simultaneous Claims
+
+**Scenario**: Two agents both try to claim the same task simultaneously.
+
+**Resolution**:
+1. Task has unique `(project_id, sprint_id, task_name)` constraint.
+2. Each claim calls `assign_backlog_agent_tag(task_id, agent_tag)`.
+3. Database ensures only ONE agent_tag can be set at a time.
+4. First successful INSERT wins; second gets `UNIQUE CONSTRAINT` error.
+5. System logs: second agent's attempt has status=ERROR.
+6. Agent B retries and finds task already claimed by Agent A.
+
+**Dashboard Behavior**:
+- Refresh shows "Agent: agent:agent_a" locked.
+- Agent B sees message: "Cannot claim: already assigned to agent:agent_a".
+- Agent B moves to next unassigned task.
+
+### Rollback & Reassignment
+
+If Agent A crashes mid-task:
+
+```
+1. Admin checks system_tool_logs for unfinished work (status=In Progress)
+2. Admin calls: assign_backlog_agent_tag(task_id, "agent:new_agent")
+3. New agent continues from Agent A's last logged checkpoint
+4. backlog_claim_events records: previous_agent_tag=agent:agent_a, new_agent_tag=agent:new_agent
+```
+
+---
+
 ## 10. Future Enhancements
 
 - [ ] File-level locking to prevent simultaneous patch conflicts.

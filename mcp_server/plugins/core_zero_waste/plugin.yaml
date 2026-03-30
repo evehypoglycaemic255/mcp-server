@@ -8,6 +8,15 @@ managed_in:
 - Sprint & Backlog Window
 - AI Log Signals
 - MCP Server tools
-tool_count: 0
-tools: []
-last_tool_catalog_sync: '2026-03-30 13:06:57'
+tool_count: 9
+tools:
+- apply_safe_patch
+- check_attempt_trap
+- create_execution_plan
+- get_project_context
+- log_session_v2
+- review_architecture_map
+- run_code_ephemeral
+- search_semantic_context
+- validate_syntax_lint
+last_tool_catalog_sync: '2026-03-30 16:41:44'

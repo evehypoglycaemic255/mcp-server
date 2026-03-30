@@ -24,7 +24,7 @@ class ProjectWatchdogHandler(FileSystemEventHandler):
         
         # Ignore noisy and internal files to prevent infinite loops (Docs/Sprints)
         if any(ignore in filepath for ignore in settings.WATCHDOG_IGNORE): return
-        if filename.endswith(".pyc") or filename.endswith(".log"): return
+        if not filename.endswith(".py"): return
         
         current_time = time.time()
         last_time = recent_events.get(filepath, 0)

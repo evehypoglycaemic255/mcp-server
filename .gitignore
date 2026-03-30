@@ -62,3 +62,8 @@ logs/
 mcp_server/logs/
 *.log
 projects/
+
+# Hồ sơ Chiến lược, Kiểm toán Mật (Không Public Github)
+docs/ABAC_GUIDE.md
+docs/sprints_reports/
+docs/architecture/audit/
