@@ -1,4 +1,12 @@
 name: github_integration
-description: Luồng làm việc với Git Local, tạo nhánh test, sinh Pull Request Remote.
+description: Luồng làm việc Git local và GitHub integration cho branch, commit, và
+  PR orchestration.
 version: 1.0.0
 enabled: true
+owner: Backend + Infra
+managed_in:
+- Plugins Ecosystem
+- MCP Server tools
+tool_count: 0
+tools: []
+last_tool_catalog_sync: '2026-03-30 13:06:57'

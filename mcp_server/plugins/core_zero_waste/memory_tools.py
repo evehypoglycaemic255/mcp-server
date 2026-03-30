@@ -28,7 +28,8 @@ def register_tools(mcp):
                     AND s.status = 'Active'
                     LIMIT 1
                 """, (task, logic, pending, project_name))
-
+                if cur.rowcount == 0:
+                    return {"error": f"No active sprint found for project '{project_name}'"}
                 conn.commit()
                 return {"status": "logged"}
         finally:
@@ -36,16 +37,17 @@ def register_tools(mcp):
 
 
     @mcp.tool()
+    @safe_tool
     def get_project_context(project_name: str):
         conn = get_db_conn()
         try:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 cur.execute("""
-                    SELECT s.session_date, s.task_performed, s.implemented_logic, s.pending_tasks
+                    SELECT s.created_at, s.task_performed, s.implemented_logic, s.pending_tasks
                     FROM ai_sessions s
                     JOIN projects p ON s.project_id = p.id
                     WHERE p.project_name = %s
-                    ORDER BY s.session_date DESC LIMIT 3;
+                    ORDER BY s.created_at DESC LIMIT 3;
                 """, (project_name,))
                 return cur.fetchall()
         finally:

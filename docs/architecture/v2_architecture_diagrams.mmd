@@ -1,0 +1,35 @@
+flowchart LR
+  subgraph AI Agent
+    A[Agent Client (Llama Gemini etc)]
+  end
+
+  subgraph MCP Core
+    B[FastAPI App]
+    C[FastMCP]
+    D[Routed Tool Plugins]
+    P1(core_system)
+    P2(core_zero_waste)
+    P3(github_integration)
+    P4(antigravity_sync)
+  end
+
+  subgraph Data Layer
+    DB[(PostgreSQL + pgvector)]
+    VEC[Vector DB Backend]
+  end
+
+  subgraph Dashboard
+    S[Streamlit App]
+  end
+
+  A -->|SSE/JSON-RPC| B
+  B --> C
+  C --> D
+  D --> P1
+  D --> P2
+  D --> P3
+  D --> P4
+  D -->|logs + metadata| DB
+  D -->|vector store| VEC
+  S -->|query| DB
+  S -->|toggle plugins| P1

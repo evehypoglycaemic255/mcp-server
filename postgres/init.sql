@@ -2,7 +2,8 @@
 CREATE TABLE IF NOT EXISTS projects (
     id SERIAL PRIMARY KEY,
     project_name TEXT UNIQUE NOT NULL,
-    description TEXT
+    description TEXT,
+    repo_path TEXT
 );
 
 -- Bảng Sprint
@@ -21,9 +22,27 @@ CREATE TABLE IF NOT EXISTS backlog_items (
     project_id INTEGER REFERENCES projects(id),
     sprint_id INTEGER REFERENCES sprints(id), -- NULL neu o trang thai backlog cho
     task_name TEXT NOT NULL,
+    description TEXT,
+    agent_tag TEXT DEFAULT '',
+    claim_status TEXT DEFAULT 'Unclaimed',
+    claimed_at TIMESTAMP,
+    claim_version INTEGER DEFAULT 0,
+    priority TEXT DEFAULT 'Medium',
+    effort TEXT DEFAULT 'M',
     status TEXT DEFAULT 'To Do', -- [To Do, In Progress, Blocked, Done, Cancelled]
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS backlog_claim_events (
+    id SERIAL PRIMARY KEY,
+    backlog_item_id INTEGER REFERENCES backlog_items(id) ON DELETE CASCADE,
+    event_type TEXT NOT NULL,
+    actor_agent_tag TEXT DEFAULT '',
+    previous_agent_tag TEXT DEFAULT '',
+    new_agent_tag TEXT DEFAULT '',
+    note TEXT DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Bảng Nhật ký/Task ai_sessions cũ
@@ -78,3 +97,12 @@ INSERT INTO projects (project_name, description) VALUES
 ('DemoProject', 'Core AI Engine'),
 ('PTXS', 'Lottery Data Analysis'),
 ('Sentinel', 'AI Automation Agent');
+
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS repo_path TEXT;
+ALTER TABLE backlog_items ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE backlog_items ADD COLUMN IF NOT EXISTS agent_tag TEXT DEFAULT '';
+ALTER TABLE backlog_items ADD COLUMN IF NOT EXISTS claim_status TEXT DEFAULT 'Unclaimed';
+ALTER TABLE backlog_items ADD COLUMN IF NOT EXISTS claimed_at TIMESTAMP;
+ALTER TABLE backlog_items ADD COLUMN IF NOT EXISTS claim_version INTEGER DEFAULT 0;
+ALTER TABLE backlog_items ADD COLUMN IF NOT EXISTS priority TEXT DEFAULT 'Medium';
+ALTER TABLE backlog_items ADD COLUMN IF NOT EXISTS effort TEXT DEFAULT 'M';

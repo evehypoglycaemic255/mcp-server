@@ -1,122 +1,85 @@
-# Kiến trúc hệ thống: AI Memory & MCP Server
+﻿# Kiến trúc hệ thống: MCP Commander
 
-Tài liệu này mô tả cấu trúc kỹ thuật tổng quan của dự án, nhằm cung cấp năng lực lưu trữ "trí nhớ bền vững" (Persistent Memory) cho Antigravity (AI Agent) thông qua Model Context Protocol (MCP). Đảm bảo các AI thao tác trên dự án không bị mất đi bối cảnh công việc trải dài qua nhiều phiên trò chuyện khác nhau.
+Tài liệu này mô tả kiến trúc tổng quan của MCP Commander ở trạng thái hiện hành.
+Nó thay thế mô tả cũ còn drift với implementation trước remediation.
 
-## 1. Mục tiêu kiến trúc
+## Mục tiêu kiến trúc
 
-Thiết lập một ranh giới rõ ràng giữa AI suy luận (Client) và Dữ liệu cục bộ (Database), sử dụng MCP làm giao thức trung gian:
-- **Ngữ cảnh (Context):** Duy trì sự liên tục giữa các phiên làm việc (Session) của AI.
-- **Tiến độ (Sprint Tracking):** Chia nhỏ và quản lý công việc của AI trong các Sprint.
-- **Tính trọn vẹn (Integrity):** Bằng cách gọi Tools trực tiếp, AI không cần tài khoản trực tiếp vào DB, tăng tính bảo mật và dễ debug.
-- **Đa nền tảng (Agnostic):** Hỗ trợ tất cả các Editor chuẩn (Cursor, VS Code, Antigravity) nhờ thiết kế Dual-Mode (stdio + SSE).
+- Cung cấp MCP server cho AI agent làm việc với project tracking, sprint, backlog và session logs.
+- Duy trì persistent memory qua PostgreSQL và vector backend.
+- Cho phép dashboard quan sát và quản trị project theo cách trực quan.
+- Tách năng lực hệ thống theo plugin để dễ kiểm soát phạm vi tool.
 
----
+## Thành phần chính
 
-## 2. Sơ đồ Các thành phần (Component Architecture Diagram)
+### 1. MCP Server
+- Nền tảng: FastAPI + FastMCP.
+- Chạy ở 2 mode:
+  - local MCP runtime
+  - SSE server qua `/mcp/sse`
+- Có endpoint kiểm tra sức khỏe tại `/health`.
 
-Dưới đây là sơ đồ kiến trúc tổng thể, minh họa luồng xử lý Dual-mode mới nhất, cho phép linh hoạt giữa chạy script ngầm (stdio) dành cho Local IDE và chạy Web Server (SSE) cho môi trường Remote hoặc Dashboard:
+### 2. PostgreSQL
+- Lưu project tracking và operational logs.
+- Các bảng chính:
+  - `projects`
+  - `sprints`
+  - `backlog_items`
+  - `ai_sessions`
+  - `system_tool_logs`
+- Có schema bootstrap tại runtime qua `ensure_schema()`.
 
-```mermaid
-graph TD
-    subgraph ClientLayer["Các nền tảng Client"]
-        Editor["AI Editors: Antigravity / Cursor / VS Code"]
-        Dash["Streamlit Dashboard WebUI"]
-    end
+### 3. Streamlit Dashboard
+- Dùng để xem và quản trị:
+  - project
+  - sprint
+  - backlog
+  - AI logs
+  - system tool logs
+  - plugin metadata
+  - antigravity brain logs
+- Tab `Sprint & Backlog Window` phục vụ theo dõi công việc đang triển khai.
 
-    subgraph MCPLayer["MCP Server Gateway (Python / FastMCP)"]
-        DualMode{"Giao tiếp Dual-Mode"}
-        CLI["stdio Interface"]
-        SSE["SSE HTTP Transport :8000"]
-        Router["Tool Handlers / safe_tool"]
-        Watcher["Log Watcher (Tính năng mở rộng)"]
-    end
-    
-    subgraph DBLayer["Tầng Dữ liệu Bền vững"]  
-        DB[("PostgreSQL mcp_server_db")]
-    end
+### 4. Plugin Ecosystem
 
-    Editor -->|"Gọi lệnh python"| CLI
-    Editor -.->|"Kết nối URL"| SSE
-    CLI --> DualMode
-    SSE --> DualMode
-    DualMode --> Router
-    Router -->|"psycopg2 SQL Pool"| DB
-    Dash -->|"SQL Query trực tiếp"| DB
-    Watcher -.->|"Phân tích Log"| DB
+#### `core_system`
+- Project management tools
+- Sprint/backlog creation and update tools
+- Codebase memory and architecture review tools
 
-    classDef future fill:#f9f,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5;
-    class Watcher future;
-```
+#### `core_zero_waste`
+- Semantic context search
+- Execution planning
+- Session logging
+- Patch workflow với guard và validation
+- Ephemeral sandbox execution
 
-### Các Module Cốt lõi
+#### `github_integration`
+- Git local status
+- Checkout branch
+- Commit changes
+- Mock PR creation
 
-#### 2.1. Client Layer (Antigravity & Dashboard)
-- **Antigravity AI Agent (MCP Client):** Gửi yêu cầu Tools Execute qua giao thức MCP để `manage_sprint` (Tạo, kiểm tra thẻ Sprint), `log_session_v2` (Lưu nhật ký công việc thực tế, logic, pending). Đóng vai trò là Actor thực thi mã và xử lý nghiệp vụ chính.
-- **Dashboard (`D:\WORK\1.MCP_SERVER\dashboard`):** Ứng dụng Streamlit hiển thị trực quan dữ liệu. Cung cấp góc nhìn bao quát, giám sát trực quan các AI Session và Sprint Active qua View `v_sprint_monitoring`.
+#### `antigravity_sync`
+- Đọc dữ liệu brain logs từ mounted external volume
 
-#### 2.2. Interface Layer (MCP Server)
-- **Ngôn ngữ:** Python (FastAPI + FastMCP)
-- **Cơ chế gọi:**
-  - `stdio`: Khi chạy qua CLI (`python main.py`).
-  - `HTTP/SSE`: Khi chạy kèm flag (`python main.py --sse`).
-- **Vai trò:** Validate request từ AI, thiết lập Connection Pool (qua psycopg2) đến Postgres, xử lý các Exceptions và trả về JSON/Status cho AI.
+## Luồng triển khai
 
-#### 2.3. Data Layer (Postgres DB)
-- Khởi chạy bằng Docker (`mcp_postgres` trên port `5434` ra host, port nội bộ `5432`).
-- Lược đồ (Schema) chính:
-  - `projects`: Lưu danh sách các Master Projects.
-  - `sprints`: Tổ chức task logic theo mục tiêu, có trạng thái (`Active`, `Completed`).
-  - `ai_sessions`: Lưu lịch sử mỗi tool call / logic mà AI đã dùng.
+1. Dashboard hoặc MCP client gửi yêu cầu.
+2. MCP server route yêu cầu tới plugin tương ứng.
+3. Tool đi qua `safe_tool` để log và chuẩn hóa trạng thái lỗi.
+4. Dữ liệu được ghi xuống PostgreSQL hoặc vector backend.
+5. Dashboard đọc lại trạng thái để hiển thị tiến độ theo project.
 
----
+## Luồng deployment
 
-## 3. Data Workflow (Luồng dữ liệu hoạt động)
+### Docker Compose
+- `db`: PostgreSQL + pgvector, có healthcheck.
+- `mcp-server`: mount source code và workspace root, có healthcheck `/health`.
+- `dashboard`: streamlit app, có healthcheck `_stcore/health`.
 
-Sơ đồ trình tự (Sequence Diagram) dưới đây mô tả chính xác những gì xảy ra khi AI quyết định Ghi nhớ / Lưu log một tính năng vừa thiết kế:
+## Giới hạn hiện tại
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Dev as Developer
-    participant AI as AI Agent
-    participant MCP as MCP API Server
-    participant DB as Postgres DB
-    
-    Dev->>AI: Yêu cầu "Tạo file schema"
-    Note over AI: AI suy luận và sinh code
-    AI->>AI: Sinh file schema.sql
-    
-    Note over AI,MCP: Vòng đời chạy MCP Tool
-    AI->>MCP: Gọi tool log_session_v2
-    activate MCP
-    
-    MCP->>DB: Trích xuất sprint_id đang active
-    DB-->>MCP: Trả về sprint_id
-    
-    MCP->>DB: Thực thi INSERT INTO ai_sessions
-    DB-->>MCP: Ghi log thành công
-    
-    MCP-->>AI: Phản hồi completed/logged
-    deactivate MCP
-    
-    AI->>Dev: Trả lời "Đã lưu trí nhớ thành công"
-```
-
-### Giải thích Luồng Data Workflow
-1. **Khởi nguồn:** Mọi thứ bắt đầu từ hành vi của người dùng và AI xử lý logic mã nguồn ngay tại Sandbox / Workspace.
-2. **Kích hoạt:** Sau khi các file tĩnh (code) được xử lý xong, AI tự động chuyển hóa kiến thức đó thành dạng văn bản cô đọng (context/logic/pending tasks).
-3. **Đóng gói MCP:** Dữ liệu này được bọc lại theo chuẩn giao thức MCP và đẩy qua `stdio` vào script Python.
-4. **Adapter:** Server Python chuyển đổi JSON Payload thành cú pháp SQL an toàn qua Parametrized Query.
-5. **Duyệt:** Cơ sở dữ liệu Postgres map chuẩn xác thông tin vào dự án và sprint, giúp cho các AI Agent từ những nền tảng khác nhau vẫn có thể nhặt ra xài chung nếu cần.
-
----
-
-## 4. Đặc tả Môi trường & Triển khai
-
-| Thành phần | Đường dẫn / Image | Port (Host) |
-|---|---|---|
-| PostgreSQL | `postgres:15-alpine` | `5434` |
-| MCP Server (Docker) | `./mcp_server` | `8000` |
-| Dashboard | `./dashboard` | `8501` |
-
-*(File được cập nhật vào ngày 29/03/2026 bởi Antigravity)*
+- Vector/embedding subsystem vẫn phụ thuộc dependency nặng và môi trường build phù hợp.
+- Auth và access control chưa hoàn thiện.
+- Một số hardening production vẫn nằm trong backlog remediation giai đoạn sau.

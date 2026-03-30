@@ -13,7 +13,9 @@ def register_tools(mcp):
         Helps the AI define its actual workspace diff before patching.
         """
         result = subprocess.run(["git", "status", "-s"], capture_output=True, text=True, cwd=settings.PROJECT_ROOT)
-        return {"stdout": result.stdout}
+        if result.returncode != 0:
+            return {"error": result.stderr or "git status failed", "workspace_root": settings.PROJECT_ROOT}
+        return {"stdout": result.stdout, "workspace_root": settings.PROJECT_ROOT}
 
     @mcp.tool()
     @safe_tool
@@ -31,7 +33,9 @@ def register_tools(mcp):
         cmd.append(branch_name)
         
         result = subprocess.run(cmd, capture_output=True, text=True, cwd=settings.PROJECT_ROOT)
-        return {"stdout": result.stdout, "stderr": result.stderr}
+        if result.returncode != 0:
+            return {"error": result.stderr or "git checkout failed", "workspace_root": settings.PROJECT_ROOT}
+        return {"stdout": result.stdout, "stderr": result.stderr, "workspace_root": settings.PROJECT_ROOT}
 
     @mcp.tool()
     @safe_tool
@@ -41,9 +45,13 @@ def register_tools(mcp):
         Any Local Patch that passes Validator should be committed locally to allow rewinds.
         """
         # Auto-Add all modified files
-        subprocess.run(["git", "add", "."], cwd=settings.PROJECT_ROOT)
+        add_result = subprocess.run(["git", "add", "."], capture_output=True, text=True, cwd=settings.PROJECT_ROOT)
+        if add_result.returncode != 0:
+            return {"error": add_result.stderr or "git add failed", "workspace_root": settings.PROJECT_ROOT}
         result = subprocess.run(["git", "commit", "-m", message], capture_output=True, text=True, cwd=settings.PROJECT_ROOT)
-        return {"stdout": result.stdout, "stderr": result.stderr}
+        if result.returncode != 0:
+            return {"error": result.stderr or "git commit failed", "workspace_root": settings.PROJECT_ROOT}
+        return {"stdout": result.stdout, "stderr": result.stderr, "workspace_root": settings.PROJECT_ROOT}
 
     @mcp.tool()
     @safe_tool

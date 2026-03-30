@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+
 from core.dependencies import safe_tool
 
 def register_tools(mcp):
@@ -31,3 +33,14 @@ def register_tools(mcp):
         project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
         ast_analyzer.analyze_ast(project_root)
         return {"status": "success", "message": "Đã ghi báo cáo map vào docs/architecture/code_wiring.md"}
+    @mcp.tool()
+    @safe_tool
+    def get_active_tool_catalog():
+        catalog_path = Path(__file__).resolve().parents[3] / "docs" / "architecture" / "active_tool_catalog.md"
+        if not catalog_path.exists():
+            return {"error": f"Tool catalog not found at '{catalog_path}'"}
+        return {
+            "status": "ok",
+            "catalog_path": str(catalog_path),
+            "content": catalog_path.read_text(encoding="utf-8"),
+        }

@@ -1,4 +1,13 @@
 name: core_zero_waste
-description: Hệ thống lõi Zero-Waste chống rò rỉ Context và ngăn lặp vòng lặp ảo của Agent.
+description: Hệ thống lõi Zero-Waste cho context guard, validator, sandbox, session
+  logging, và patch workflow.
 version: 1.0.0
 enabled: true
+owner: Backend
+managed_in:
+- Sprint & Backlog Window
+- AI Log Signals
+- MCP Server tools
+tool_count: 0
+tools: []
+last_tool_catalog_sync: '2026-03-30 13:06:57'

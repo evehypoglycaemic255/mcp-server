@@ -1,4 +1,14 @@
 name: core_system
-description: Bộ quét mã nguồn, chạy Review kiến trúc, và đọc tệp cơ bản.
+description: Bộ công cụ hệ thống cho quản lý project, sprint, backlog, memory query,
+  và review kiến trúc code.
 version: 1.0.0
 enabled: true
+owner: Backend
+managed_in:
+- Projects tab
+- Sprint & Backlog Window
+- MCP Server tools
+tool_count: 0
+tools: []
+last_synced_via_mcp_tool: 2026-03-30
+last_tool_catalog_sync: '2026-03-30 13:06:57'

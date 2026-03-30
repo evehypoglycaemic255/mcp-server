@@ -1,4 +1,12 @@
-description: Cầu nối liên thông Đọc hiểu Di sản Walkthrough & Architecture từ Lịch
-  sử Trò chuyện của Google Antigravity Agent vào DB Cục bộ.
-enabled: false
 name: 🧠 Antigravity Matrix
+description: Kết nối lịch sử session Antigravity để đọc plan và walkthrough từ bộ
+  nhớ ngoài.
+version: 1.0.0
+enabled: true
+owner: Knowledge / UX
+managed_in:
+- Antigravity Brain Logs
+- Plugins Ecosystem
+tool_count: 0
+tools: []
+last_tool_catalog_sync: '2026-03-30 13:06:57'

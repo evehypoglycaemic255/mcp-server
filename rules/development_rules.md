@@ -24,3 +24,6 @@ Bất kỳ khi nào thực hiện gỡ Lỗi (Bugfix) hoặc Thêm tính năng (
 ## 3. Quy chuẩn Code (Code Standards)
 - Khi thêm, sửa code phải có comment mã sprint và nhiệm vụ của đoạn code. Python phải có Type Hinting rõ ràng.
 - Bước cuối cùng của mọi chặng luôn là tự hỏi "Tôi có nên lưu lại Task Session này vào Database không" và chủ động gọi `log_session_v2`.
+## 0. Tool Catalog First
+- Truoc khi tim tool trong codebase, bat buoc doc `rules/tool_catalog_rules.md`.
+- Uu tien `docs/architecture/active_tool_catalog.md` hoac `get_active_tool_catalog`.

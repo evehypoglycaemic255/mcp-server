@@ -70,8 +70,7 @@ class ProjectWatchdogHandler(FileSystemEventHandler):
                     return # Skip silently if no sprint active
                 
                 project_id, sprint_id = result
-                project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-                rel_path = os.path.relpath(filepath, project_root)
+                rel_path = os.path.relpath(filepath, settings.PROJECT_ROOT)
                 
                 cur.execute("""
                     INSERT INTO ai_sessions (
@@ -86,14 +85,25 @@ class ProjectWatchdogHandler(FileSystemEventHandler):
             if 'conn' in locals() and conn:
                 conn.close()
 
-def start_watcher(project_name="MCP_SERVER"):
-    watch_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..")) # Watch the whole repo
-    logging.info(f"Starting Workspace Watchdog for {project_name} at {watch_dir}")
-    event_handler = ProjectWatchdogHandler(project_name)
+def start_watcher(project_name=None):
+    project_name = project_name or settings.DEFAULT_PROJECT_NAME
     observer = Observer()
-    observer.schedule(event_handler, watch_dir, recursive=True)
-    
-    # Daemon thread ensures the main process can still exit cleanly
+    event_handler = ProjectWatchdogHandler(project_name)
+    watched_dirs = []
+
+    for root_name in settings.WATCHDOG_ROOTS:
+        watch_dir = os.path.join(settings.PROJECT_ROOT, root_name)
+        if os.path.exists(watch_dir):
+            observer.schedule(event_handler, watch_dir, recursive=True)
+            watched_dirs.append(watch_dir)
+
+    if not watched_dirs:
+        fallback_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        observer.schedule(event_handler, fallback_dir, recursive=True)
+        watched_dirs.append(fallback_dir)
+
+    logging.info(f"Starting Workspace Watchdog for {project_name} at {watched_dirs}")
+
     observer.daemon = True
     observer.start()
     return observer

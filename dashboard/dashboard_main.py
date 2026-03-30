@@ -1,0 +1,512 @@
+import datetime
+import os
+import sys
+
+import pandas as pd
+import psycopg2
+import streamlit as st
+from dotenv import load_dotenv
+
+MCP_SERVER_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "mcp_server"))
+if MCP_SERVER_DIR not in sys.path:
+    sys.path.insert(0, MCP_SERVER_DIR)
+
+from core.schema import ensure_schema
+
+
+def render_app():
+    st.set_page_config(page_title="MCP Commander", layout="wide", page_icon="🚀")
+    st.title("🚀 MCP Commander Dashboard")
+
+    dotenv_path = os.path.join(MCP_SERVER_DIR, ".env")
+    load_dotenv(dotenv_path)
+    database_url = os.environ.get("DATABASE_URL")
+    plugins_dir = os.path.join(MCP_SERVER_DIR, "plugins")
+
+    def get_conn():
+        if not database_url:
+            st.error("🚨 SECURITY ERROR: `DATABASE_URL` is not configured in `.env`.")
+            st.stop()
+        try:
+            conn = psycopg2.connect(database_url)
+            ensure_schema(conn)
+            return conn
+        except psycopg2.Error as exc:
+            st.error(f"❌ Cannot connect to Database. Please check Docker or `.env`. Error: {exc}")
+            st.stop()
+
+    def run_query(sql, params=None):
+        conn = get_conn()
+        try:
+            return pd.read_sql_query(sql, conn, params=params)
+        finally:
+            conn.close()
+
+    def load_projects():
+        return run_query("""
+            SELECT id, project_name, description, COALESCE(repo_path, '') AS repo_path
+            FROM projects
+            ORDER BY project_name
+        """)
+
+    def load_sprints(project_id):
+        return run_query("""
+            SELECT
+                id AS sprint_id,
+                sprint_name,
+                COALESCE(goals, '') AS goals,
+                status,
+                start_date,
+                end_date
+            FROM sprints
+            WHERE project_id = %s
+            ORDER BY start_date DESC, id DESC
+        """, (project_id,))
+
+    def load_backlogs(project_id):
+        return run_query("""
+            SELECT
+                b.id,
+                b.task_name,
+                COALESCE(b.description, '') AS description,
+                COALESCE(b.priority, 'Medium') AS priority,
+                COALESCE(b.effort, 'M') AS effort,
+                b.status,
+                COALESCE(s.sprint_name, '') AS sprint_name,
+                b.created_at,
+                b.updated_at
+            FROM backlog_items b
+            LEFT JOIN sprints s ON b.sprint_id = s.id
+            WHERE b.project_id = %s
+            ORDER BY b.created_at DESC, b.id DESC
+        """, (project_id,))
+
+    def create_or_update_project(project_name, description, repo_path):
+        conn = get_conn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO projects (project_name, description, repo_path)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (project_name)
+                    DO UPDATE SET description = EXCLUDED.description, repo_path = EXCLUDED.repo_path
+                """, (project_name, description, repo_path))
+            conn.commit()
+            st.success("✅ Project saved.")
+        except Exception as exc:
+            st.error(f"❌ Project save error: {exc}")
+        finally:
+            conn.close()
+
+    def create_sprint(project_id, sprint_name, goals, status, end_date):
+        conn = get_conn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO sprints (project_id, sprint_name, goals, status, end_date)
+                    VALUES (%s, %s, %s, %s, NULLIF(%s, '')::timestamp)
+                """, (project_id, sprint_name, goals, status, end_date))
+            conn.commit()
+            st.success("✅ Sprint created.")
+        except Exception as exc:
+            st.error(f"❌ Sprint create error: {exc}")
+        finally:
+            conn.close()
+
+    def create_backlog_item(project_id, task_name, description, sprint_name, priority, effort, status):
+        conn = get_conn()
+        try:
+            with conn.cursor() as cur:
+                sprint_id = None
+                if sprint_name:
+                    cur.execute(
+                        "SELECT id FROM sprints WHERE project_id = %s AND sprint_name = %s",
+                        (project_id, sprint_name),
+                    )
+                    res = cur.fetchone()
+                    sprint_id = res[0] if res else None
+
+                cur.execute("""
+                    INSERT INTO backlog_items (project_id, sprint_id, task_name, description, priority, effort, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """, (project_id, sprint_id, task_name, description, priority, effort, status))
+            conn.commit()
+            st.success("✅ Backlog item created.")
+        except Exception as exc:
+            st.error(f"❌ Backlog create error: {exc}")
+        finally:
+            conn.close()
+
+    def update_backlog_item(task_id, task_name, description, sprint_name, priority, effort, status, project_id):
+        conn = get_conn()
+        try:
+            with conn.cursor() as cur:
+                sprint_id = None
+                if sprint_name:
+                    cur.execute(
+                        "SELECT id FROM sprints WHERE project_id = %s AND sprint_name = %s",
+                        (project_id, sprint_name),
+                    )
+                    res = cur.fetchone()
+                    sprint_id = res[0] if res else None
+
+                cur.execute("""
+                    UPDATE backlog_items
+                    SET
+                        task_name = %s,
+                        description = %s,
+                        sprint_id = %s,
+                        priority = %s,
+                        effort = %s,
+                        status = %s,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                """, (task_name, description, sprint_id, priority, effort, status, task_id))
+            conn.commit()
+            st.success("✅ Backlog item updated.")
+        except Exception as exc:
+            st.error(f"❌ Backlog update error: {exc}")
+        finally:
+            conn.close()
+
+    def load_plugin_data():
+        import yaml
+
+        plugins_data = []
+        if not os.path.exists(plugins_dir):
+            return plugins_data
+
+        for plugin_folder in os.listdir(plugins_dir):
+            p_dir = os.path.join(plugins_dir, plugin_folder)
+            yaml_path = os.path.join(p_dir, "plugin.yaml")
+            if os.path.isdir(p_dir) and os.path.exists(yaml_path):
+                try:
+                    with open(yaml_path, "r", encoding="utf-8") as yf:
+                        cfg = yaml.safe_load(yf)
+                        plugins_data.append({
+                            "folder": plugin_folder,
+                            "name": cfg.get("name", plugin_folder),
+                            "description": cfg.get("description", "No description provided"),
+                            "enabled": cfg.get("enabled", False),
+                            "yaml_path": yaml_path,
+                        })
+                except Exception as exc:
+                    st.error(f"Error reading {plugin_folder}: {exc}")
+        return plugins_data
+
+    projects_df = load_projects()
+    if projects_df.empty:
+        create_or_update_project("MCP_SERVER", "Primary MCP Commander project", os.path.abspath(os.path.join(MCP_SERVER_DIR, "..")))
+        st.rerun()
+
+    project_options = projects_df["project_name"].tolist()
+    st.sidebar.header("Project Navigator")
+    project_name = st.sidebar.selectbox("Select Project", project_options)
+
+    selected_project = projects_df[projects_df["project_name"] == project_name].iloc[0]
+    project_id = int(selected_project["id"])
+
+    header_left, header_right = st.columns([1.2, 2.8])
+    with header_left:
+        project_name = st.selectbox("🎯 Active Project", project_options, index=project_options.index(project_name), key="project_select_main")
+        selected_project = projects_df[projects_df["project_name"] == project_name].iloc[0]
+        project_id = int(selected_project["id"])
+    with header_right:
+        st.caption(f"Repo Path: `{selected_project['repo_path'] or 'Not set'}`")
+        st.caption(selected_project["description"] or "No project description yet.")
+
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+        "🏃 Sprint & Backlog Window",
+        "📊 Overview Dashboard",
+        "🤖 AI Log Signals",
+        "🛠️ System Tool Logs",
+        "🔌 Plugins Ecosystem",
+        "🧠 Antigravity Brain Logs",
+    ])
+
+    with tab1:
+        sprints_df = load_sprints(project_id)
+        sprint_names = sprints_df["sprint_name"].tolist() if not sprints_df.empty else []
+        backlogs_df = load_backlogs(project_id)
+
+        st.subheader(f"Project Workspace - {project_name}")
+        st.caption("Use `View` to monitor the selected project. Use `Admin` to create or edit projects, sprints, and backlog items.")
+
+        view_tab, admin_tab = st.tabs(["View", "Admin"])
+
+        with view_tab:
+            info1, info2, info3 = st.columns(3)
+            info1.metric("Sprints", len(sprints_df))
+            info2.metric("Backlog Items", len(backlogs_df))
+            active_count = int((backlogs_df["status"] == "In Progress").sum()) if not backlogs_df.empty else 0
+            info3.metric("In Progress", active_count)
+
+            st.markdown("---")
+            st.subheader("Sprint Window")
+            if sprints_df.empty:
+                st.info("No sprints found.")
+            else:
+                st.dataframe(
+                    sprints_df[["sprint_name", "status", "goals", "start_date", "end_date"]],
+                    use_container_width=True,
+                    hide_index=True,
+                )
+                sprint_choice = st.selectbox("View sprint details", sprint_names)
+                sprint_detail = sprints_df[sprints_df["sprint_name"] == sprint_choice].iloc[0]
+                st.info(f"**{sprint_detail['sprint_name']}**\n\nStatus: {sprint_detail['status']}\n\nGoals: {sprint_detail['goals'] or 'No goals defined.'}")
+
+            st.markdown("---")
+            st.subheader("Backlog Window")
+            if backlogs_df.empty:
+                st.info("Backlog queue is empty.")
+            else:
+                st.dataframe(
+                    backlogs_df[["id", "task_name", "priority", "effort", "status", "sprint_name"]],
+                    use_container_width=True,
+                    hide_index=True,
+                )
+                task_options = {f"#{row.id} - {row.task_name}": int(row.id) for row in backlogs_df.itertuples()}
+                selected_task_label = st.selectbox("Select a task to view details", list(task_options.keys()))
+                selected_task_id = task_options[selected_task_label]
+                selected_task = backlogs_df[backlogs_df["id"] == selected_task_id].iloc[0]
+
+                st.markdown("### Task Details")
+                detail_col1, detail_col2 = st.columns([2, 1])
+                with detail_col1:
+                    st.write(f"**Task:** {selected_task['task_name']}")
+                    st.write(f"**Purpose:** {selected_task['description'] or 'No description yet.'}")
+                    st.write(f"**Sprint:** {selected_task['sprint_name'] or 'Unassigned'}")
+                with detail_col2:
+                    st.write(f"**Priority:** {selected_task['priority']}")
+                    st.write(f"**Effort:** {selected_task['effort']}")
+                    st.write(f"**Status:** {selected_task['status']}")
+
+        with admin_tab:
+            st.subheader("Project Administration")
+            with st.expander("Project Setup", expanded=True):
+                with st.form("project_form"):
+                    new_name = st.text_input("Project Name", value=selected_project["project_name"])
+                    new_desc = st.text_area("Project Description", value=selected_project["description"] or "")
+                    new_repo = st.text_input("Repository Path", value=selected_project["repo_path"] or "")
+                    submitted = st.form_submit_button("Save Project")
+                    if submitted:
+                        create_or_update_project(new_name.strip(), new_desc.strip(), new_repo.strip())
+                        st.rerun()
+
+            with st.expander("Create Sprint", expanded=False):
+                with st.form("create_sprint_form"):
+                    sprint_name = st.text_input("Sprint Name")
+                    sprint_goals = st.text_area("Sprint Goals / Description")
+                    sprint_status = st.selectbox("Sprint Status", ["Active", "Paused", "Completed", "Cancelled"])
+                    sprint_end = st.text_input("End Date (optional, YYYY-MM-DD)")
+                    sprint_submit = st.form_submit_button("Create Sprint")
+                    if sprint_submit and sprint_name.strip():
+                        create_sprint(project_id, sprint_name.strip(), sprint_goals.strip(), sprint_status, sprint_end)
+                        st.rerun()
+
+            with st.expander("Create Backlog Item", expanded=False):
+                with st.form("create_backlog_form"):
+                    task_name = st.text_input("Task Name")
+                    task_desc = st.text_area("Task Description / Purpose")
+                    task_sprint = st.selectbox("Sprint Allocation", [""] + sprint_names)
+                    task_priority = st.selectbox("Priority", ["Critical", "High", "Medium", "Low"], index=2)
+                    task_effort = st.selectbox("Effort", ["S", "M", "L"], index=1)
+                    task_status = st.selectbox("Status", ["To Do", "In Progress", "Blocked", "Done", "Cancelled"])
+                    backlog_submit = st.form_submit_button("Create Backlog Item")
+                    if backlog_submit and task_name.strip():
+                        create_backlog_item(project_id, task_name.strip(), task_desc.strip(), task_sprint, task_priority, task_effort, task_status)
+                        st.rerun()
+
+            st.markdown("---")
+            st.subheader("Task Editor")
+            if backlogs_df.empty:
+                st.info("No backlog item available to edit.")
+            else:
+                task_options = {f"#{row.id} - {row.task_name}": int(row.id) for row in backlogs_df.itertuples()}
+                selected_task_label = st.selectbox("Select a task to edit", list(task_options.keys()), key="admin_task_select")
+                selected_task_id = task_options[selected_task_label]
+                selected_task = backlogs_df[backlogs_df["id"] == selected_task_id].iloc[0]
+                with st.form(f"edit_task_{selected_task_id}"):
+                    edit_name = st.text_input("Task Name", value=selected_task["task_name"])
+                    edit_desc = st.text_area("Task Description / Purpose", value=selected_task["description"])
+                    sprint_options = [""] + sprint_names
+                    edit_sprint = st.selectbox(
+                        "Sprint Allocation",
+                        sprint_options,
+                        index=sprint_options.index(selected_task["sprint_name"]) if selected_task["sprint_name"] in sprint_options else 0,
+                    )
+                    priority_options = ["Critical", "High", "Medium", "Low"]
+                    effort_options = ["S", "M", "L"]
+                    status_options = ["To Do", "In Progress", "Blocked", "Done", "Cancelled"]
+                    edit_priority = st.selectbox(
+                        "Priority",
+                        priority_options,
+                        index=priority_options.index(selected_task["priority"]) if selected_task["priority"] in priority_options else 2,
+                    )
+                    edit_effort = st.selectbox(
+                        "Effort",
+                        effort_options,
+                        index=effort_options.index(selected_task["effort"]) if selected_task["effort"] in effort_options else 1,
+                    )
+                    edit_status = st.selectbox(
+                        "Status",
+                        status_options,
+                        index=status_options.index(selected_task["status"]) if selected_task["status"] in status_options else 0,
+                    )
+                    edit_submit = st.form_submit_button("Save Task Changes")
+                    if edit_submit:
+                        update_backlog_item(
+                            selected_task_id,
+                            edit_name.strip(),
+                            edit_desc.strip(),
+                            edit_sprint,
+                            edit_priority,
+                            edit_effort,
+                            edit_status,
+                            project_id,
+                        )
+                        st.rerun()
+
+    with tab2:
+        st.subheader("Progress Report (Views)")
+        df_view = run_query("SELECT * FROM v_sprint_monitoring WHERE project_name = %s", (project_name,))
+        st.dataframe(df_view, use_container_width=True)
+
+    with tab3:
+        st.subheader("Latest AI Activity Logs")
+        sessions = run_query("""
+            SELECT task_performed, implemented_logic, pending_tasks, created_at
+            FROM ai_sessions
+            WHERE project_id = %s
+            ORDER BY created_at DESC
+            LIMIT 20
+        """, (project_id,))
+        st.dataframe(sessions, use_container_width=True, hide_index=True)
+
+    with tab4:
+        st.subheader("🕵️ System Tool Footprints (Logs)")
+        st.markdown("Comprehensive monitoring of AI tool calls.")
+        logs_df = run_query("""
+            SELECT id, tool_name, parameters, status, message, created_at
+            FROM system_tool_logs
+            ORDER BY created_at DESC
+            LIMIT 50
+        """)
+        if logs_df.empty:
+            st.info("No tools have been called by AI yet.")
+        else:
+            st.dataframe(logs_df, use_container_width=True, hide_index=True)
+
+    with tab5:
+        st.subheader("🔌 Plugins Ecosystem Management")
+        st.markdown("Control and toggle feature modules.")
+        import yaml
+
+        plugins_data = load_plugin_data()
+        if not plugins_data:
+            st.warning(f"Plugins directory not found. Dashboard is tracking: {plugins_dir}")
+        else:
+            for plugin in plugins_data:
+                with st.container(border=True):
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        st.markdown(f"### 📦 {plugin['name']}")
+                        st.caption(f"Path: `plugins/{plugin['folder']}`")
+                        st.write(plugin["description"])
+                    with col2:
+                        new_state = st.toggle("Enable", value=plugin["enabled"], key=f"tg_{plugin['folder']}")
+                        if new_state != plugin["enabled"]:
+                            try:
+                                with open(plugin["yaml_path"], "r", encoding="utf-8") as file:
+                                    doc = yaml.safe_load(file)
+                                doc["enabled"] = new_state
+                                with open(plugin["yaml_path"], "w", encoding="utf-8") as file:
+                                    yaml.dump(doc, file, allow_unicode=True, default_flow_style=False)
+                                st.rerun()
+                            except Exception as exc:
+                                st.error(f"Write Config Error: {exc}")
+
+    with tab6:
+        st.subheader("🧠 Antigravity Historical Brain Logs")
+        import yaml
+
+        plugin_yaml_path = os.path.join(plugins_dir, "antigravity_sync", "plugin.yaml")
+        is_enabled = False
+        if os.path.exists(plugin_yaml_path):
+            with open(plugin_yaml_path, "r", encoding="utf-8") as file:
+                cfg = yaml.safe_load(file)
+                is_enabled = cfg.get("enabled", False)
+
+        if not is_enabled:
+            st.warning("⚠️ Plugin Antigravity đang bị vô hiệu hóa. Hãy bật nó ở tab Plugins.")
+        else:
+            brain_dir = "/antigravity_brain"
+            if not os.path.exists(brain_dir):
+                st.error(f"❌ Missing mounted volume at `{brain_dir}`.")
+            else:
+                st.markdown("🔎 Browse implementation plans and walkthroughs from previous sessions.")
+                filter_project = st.checkbox(f"Only show sessions related to [{project_name}]", value=True)
+                folders = []
+                for entry in os.listdir(brain_dir):
+                    full_path = os.path.join(brain_dir, entry)
+                    if os.path.isdir(full_path) and len(entry) > 10:
+                        is_match = False
+                        mapped_project = None
+                        mapping_file = os.path.join(full_path, ".project_mapping")
+                        if os.path.exists(mapping_file):
+                            with open(mapping_file, "r", encoding="utf-8") as mf:
+                                mapped_project = mf.read().strip()
+                            is_match = mapped_project == project_name
+                        else:
+                            for md_file in ["implementation_plan.md", "walkthrough.md", "task.md"]:
+                                md_path = os.path.join(full_path, md_file)
+                                if os.path.exists(md_path):
+                                    with open(md_path, "r", encoding="utf-8") as mf:
+                                        if project_name.lower() in mf.read().lower():
+                                            is_match = True
+                                            break
+                        if (not filter_project) or is_match:
+                            mtime = os.path.getmtime(full_path)
+                            dt_str = datetime.datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S")
+                            tag = " [Mapped]" if mapped_project == project_name else ""
+                            folders.append((f"{dt_str} [ID: {entry[:8]}]{tag}", entry, mtime))
+
+                folders.sort(key=lambda item: item[2], reverse=True)
+                if not folders:
+                    st.info(f"No session memory found for project {project_name}.")
+                else:
+                    display_names = [item[0] for item in folders]
+                    folder_mapping = {item[0]: item[1] for item in folders}
+                    selected_display = st.selectbox("Select a past session", display_names)
+                    actual_folder = folder_mapping[selected_display]
+                    target_path = os.path.join(brain_dir, actual_folder)
+                    mapping_file = os.path.join(target_path, ".project_mapping")
+
+                    if not os.path.exists(mapping_file) or open(mapping_file, encoding="utf-8").read().strip() != project_name:
+                        if st.button(f"Pin this session to project {project_name}"):
+                            try:
+                                with open(mapping_file, "w", encoding="utf-8") as file:
+                                    file.write(project_name)
+                                st.rerun()
+                            except Exception as exc:
+                                st.error(f"Write error: {exc}")
+                    else:
+                        st.success(f"✅ Session is pinned to project {project_name}.")
+
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        st.markdown("### 🗺️ Implementation Plan")
+                        plan_path = os.path.join(target_path, "implementation_plan.md")
+                        if os.path.exists(plan_path):
+                            with open(plan_path, "r", encoding="utf-8") as file:
+                                st.info(file.read())
+                        else:
+                            st.caption("No implementation plan for this session.")
+                    with c2:
+                        st.markdown("### 🏆 Walkthrough")
+                        walk_path = os.path.join(target_path, "walkthrough.md")
+                        if os.path.exists(walk_path):
+                            with open(walk_path, "r", encoding="utf-8") as file:
+                                st.success(file.read())
+                        else:
+                            st.caption("No walkthrough for this session.")
